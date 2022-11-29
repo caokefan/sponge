@@ -152,7 +152,7 @@ struct SubmitSegment : public ReassemblerAction {
     std::string description() const {
         std::ostringstream ss;
         ss << "substring submitted with data \"" << _data << "\", index `" << _index << "`, eof `"
-           << std::to_string(_eof) << "`";
+           << std::to_string(_eof) << "`"; 
         return ss.str();
     }
 
@@ -172,6 +172,11 @@ class ReassemblerTestHarness {
         try {
             step.execute(reassembler);
             steps_executed.emplace_back(step.to_string());
+            // steps_executed.emplace_back("map size : " + std::to_string(reassembler.get().size()) + "\n");
+            // std::map<int, std::string> m = reassembler.get();
+            // for(auto i=m.begin();i!=m.end();i++){
+            //     steps_executed.emplace_back(std::to_string(i->first) +" : " + i->second);
+            // } 
         } catch (const ReassemblerExpectationViolation &e) {
             std::cerr << "Test Failure on expectation:\n\t" << step.to_string();
             std::cerr << "\n\nFailure message:\n\t" << e.what();
