@@ -2,6 +2,8 @@
 #include <cstddef>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
+#include <system_error>
 
 // Dummy implementation of a stream reassembler.
 
@@ -15,7 +17,7 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
-StreamReassembler::StreamReassembler(const size_t capacity) : buf(), unassembled(0), end_index(numeric_limits<size_t>::max()), _output(capacity), _capacity(capacity) {}
+StreamReassembler::StreamReassembler(const size_t capacity) : buf(), end_index(numeric_limits<size_t>::max()), _output(capacity), _capacity(capacity) {}
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
@@ -42,62 +44,58 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
         if(index + data.size() < _output.bytes_written()) return;
         else {
             if(buf.find(index)!=buf.end()){
-                if(buf[index].size() < data.size()){
-                    unassembled -= buf[index].size();
-                    buf[index] = data.substr(0,min(data.size(), max_idx));
-                    unassembled += buf[index].size();
-                } 
-            } else {
-                int idx = _output.bytes_written();
-                buf.insert({idx, data.substr(idx-index, min(data.size(), max_idx))});
-                unassembled += buf[idx].size();
-            }
+                if(buf[index].size() > data.size()) goto deOverlap;
+                else {
+                    buf.erase(buf.find(index));
+                }
+            } 
+            size_t idx = _output.bytes_written();
+            buf.insert({idx, data.substr(idx-index, min(data.size(), max_idx))});
         }
     } else if(index > max_idx) return;
     else {
-        if(buf.find(index)!=buf.end()){
-            if(buf[index].size() < data.size()){
-                unassembled -= buf[index].size();
-                int sec_idx = min(data.size(), max_idx - index);
-                buf[index] = data.substr(0, sec_idx);
-                unassembled += buf[index].size();
+        if(buf.find(index)!=buf.end() && buf[index].size() < data.size()){
+            if (buf[index].size() > data.size()) goto deOverlap;
+            else {
+                buf.erase(buf.find(index));
             }
-        } else {
-            int sec_idx = min(data.size(), max_idx - index);
-            buf.insert({index, data});
-            buf[index] = buf[index].substr(0, sec_idx);
-            unassembled += buf[index].size();
-        }
+        } 
+        size_t sec_idx = min(data.size(), max_idx - index);
+        buf.insert({index, data.substr(0, sec_idx)});
     }
-    
-    for(auto i=buf.begin();next(i) != buf.end();i++){
+
+    deOverlap:
+    for(map<size_t, string>::iterator i=buf.begin();next(i) != buf.end();i++){
         run:
             auto nxt = next(i);
             if(nxt == buf.end()) break;
-            int fir = i->first + i->second.size() - nxt->first;
-            if(fir > 0){
-                int ret = i->first + i->second.size() - nxt->first - nxt->second.size();
-                if(ret > 0){
-                    unassembled -= nxt->second.size();
+            if(i->first + i->second.size() > nxt->first){
+                if(i->first + i->second.size() > nxt->first + nxt->second.size()){
                     buf.erase(nxt);
                     goto run;
                 } else {
-                    int idx = nxt->first;
+                    size_t ins_idx = i->first + i->second.size();
+                    size_t idx = nxt->first;
                     string tmp = nxt->second;
-                    int l = i->first + i->second.size() - idx;
-                    buf.insert({i->first + i->second.size(), tmp.substr(l)});
-                    unassembled += buf[i->first + i->second.size()].size();
-                    unassembled -= nxt->second.size();
+                    size_t l = i->first + i->second.size() - idx;
+                    if(buf.find(ins_idx)!=buf.end()){
+                        if(buf[ins_idx].size() + ins_idx > idx + tmp.size() ) {
+                            buf.erase(nxt);
+                            goto re;
+                        }
+                        else {
+                            buf.erase(buf.find(ins_idx));
+                        }
+                    }
+                    buf.insert({ins_idx, tmp.substr(l)});
                     buf.erase(nxt);
                 }
             }
     }
-    
-    // re:
-    while(static_cast<size_t>(buf.begin()->first)==_output.bytes_written()){
+
+    re:
+    while(buf.begin()->first==_output.bytes_written()){
         _output.write(buf.begin()->second);
-        size_t len = buf.begin()->second.size();
-        unassembled -= len;
         buf.erase(buf.begin());
     }
 
@@ -106,6 +104,12 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     }
 }
 
-size_t StreamReassembler::unassembled_bytes() const { return unassembled; }
+size_t StreamReassembler::unassembled_bytes() const { 
+    size_t unassembled = 0;
+    for(auto i: buf){
+        unassembled += i.second.size();
+    }
+    return unassembled; 
+}
 
 bool StreamReassembler::empty() const { return buf.empty(); }

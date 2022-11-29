@@ -13,8 +13,7 @@
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
-    std::map<int, std::string> buf;
-    int unassembled;
+    std::map<size_t, std::string> buf;
     size_t end_index;
 
     ByteStream _output;  //!< The reassembled in-order byte stream
@@ -52,7 +51,7 @@ class StreamReassembler {
     //! \returns `true` if no substrings are waiting to be assembled
     bool empty() const;
 
-    std::map<int, std::string> get() {return buf;}
+    std::map<size_t, std::string> get() {return buf;}
 
     size_t get_end_idx() {return end_index;}
 };
