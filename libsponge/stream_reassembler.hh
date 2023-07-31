@@ -2,6 +2,8 @@
 #define SPONGE_LIBSPONGE_STREAM_REASSEMBLER_HH
 
 #include "byte_stream.hh"
+#include <cstddef>
+#include <map>
 
 #include <cstdint>
 #include <string>
@@ -11,6 +13,8 @@
 class StreamReassembler {
   private:
     // Your code here -- add private members as necessary.
+    std::map<size_t, std::string> buf;
+    size_t end_index;
 
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
@@ -46,6 +50,10 @@ class StreamReassembler {
     //! \brief Is the internal state empty (other than the output stream)?
     //! \returns `true` if no substrings are waiting to be assembled
     bool empty() const;
+
+    std::map<size_t, std::string> get() {return buf;}
+
+    size_t get_end_idx() {return end_index;}
 };
 
 #endif  // SPONGE_LIBSPONGE_STREAM_REASSEMBLER_HH

@@ -16,6 +16,8 @@ void check_roundtrip(const WrappingInt32 isn, const uint64_t value, const uint64
         ss << "  unwrap(wrap(value, isn), isn, checkpoint) did not equal value\n";
         ss << "  where value = " << value << ", isn = " << isn << ", and checkpoint = " << checkpoint << "\n";
         ss << "  (Difference between value and checkpoint is " << value - checkpoint << ".)\n";
+        ss << "unwrap(wrap(value, isn), isn, checkpoint) is " << unwrap(wrap(value, isn), isn, checkpoint)
+        << "\n";
         throw runtime_error(ss.str());
     }
 }
@@ -43,7 +45,7 @@ int main() {
             check_roundtrip(isn, val - big_offset, val);
         }
     } catch (const exception &e) {
-        cerr << e.what() << endl;
+        cerr << e.what() << "error!!" << endl;
         return 1;
     }
 

@@ -8,6 +8,7 @@
 #include <exception>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -47,10 +48,15 @@ int main() {
                 string dd(d.cbegin() + off, d.cbegin() + off + sz);
                 buf.push_substring(move(dd), off, off + sz == offset);
             }
+            cout << "rep times: " << rep_no << endl;
+            // cout << buf.get_end_idx() << endl;
+            // cout << buf.unassembled_bytes() << endl;
+            cout << buf.get_end_idx() - buf.stream_out().bytes_written() << endl;
 
             auto result = read(buf);
             if (buf.stream_out().bytes_written() != offset) {  // read bytes
-                throw runtime_error("test 2 - number of RX bytes is incorrect");
+                throw runtime_error("test 2 - number of RX bytes is incorrect.\n offset is " + 
+                to_string(offset) + " bytes_written() is " + to_string(buf.stream_out().bytes_written()));
             }
             if (!equal(result.cbegin(), result.cend(), d.cbegin())) {
                 throw runtime_error("test 2 - content of RX bytes is incorrect");
